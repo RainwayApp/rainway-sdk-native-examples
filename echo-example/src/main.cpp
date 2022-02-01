@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
         [](const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
         {
             // wrap the bit message in a vector
-            std::vector<uint8_t> input(msg[0], msg[msg_size - 1]);
+            std::vector<uint8_t> input(msg, msg + (msg_size * sizeof(const uint8_t)));
 
             // reverse the vector in place
             std::reverse(input.begin(), input.end());
