@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <optional>
 #include "rainwaysdk.h"
 
 // constant bitmask value for granting all input permissions
@@ -34,7 +35,7 @@ int main(int argc, char *argv[])
         // The max host port to use (zero disables limiting the port)
         0,
         // Optional callback for when connection to Instant Relay is lost
-        nullptr,
+        std::nullopt,
         // Optional callback for when a connection request is received from a peer
         [](const rainway::ConnectionRequest req)
         {
@@ -42,14 +43,14 @@ int main(int argc, char *argv[])
             req.accept();
         },
         // Optional callback for when a new peer has connected
-        nullptr,
+        std::nullopt,
         // Optional callback for when a peer has disconnected
-        nullptr,
+        std::nullopt,
         // Optional callback for when a peer message has been received
         [](const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
         {
             // wrap the bit message in a vector
-            std::vector<uint8_t> input(msg[0], msg[msg_size]);
+            std::vector<uint8_t> input(msg[0], msg[msg_size - 1]);
 
             // reverse the vector in place
             std::reverse(input.begin(), input.end());
@@ -58,9 +59,9 @@ int main(int argc, char *argv[])
             peer.send(channel, input);
         },
         // Optional callback for when a peer data channel is created
-        nullptr,
+        std::nullopt,
         // Optional callback for when an error has been received from a peer
-        nullptr,
+        std::nullopt,
         // Optional callback for when a stream request has been received
         [](const rainway::StreamRequest req)
         {
@@ -71,9 +72,9 @@ int main(int argc, char *argv[])
             });
         },
         // Optional callback for when a stream announcement has been received
-        nullptr,
+        std::nullopt,
         // Optional callback for when a stream has been stopped
-        nullptr};
+        std::nullopt};
 
     std::cout << "Connecting to Rainway..." << std::endl;
 
