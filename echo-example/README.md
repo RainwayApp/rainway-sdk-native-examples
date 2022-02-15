@@ -16,7 +16,7 @@ cmake . -B build
 cmake --build build
 
 # Run the built application with your Rainway API Key as the first and only argument
-../build/bin/Debug/echo-example.exe <your_rainway_api_key>
+./build/bin/Debug/echo-example.exe <your_rainway_api_key>
 ```
 
 ### Building Release
@@ -31,7 +31,7 @@ cmake . -DCMAKE_BUILD_TYPE=Release -B build
 cmake --build build
 
 # Run the built application with your Rainway API Key as the first and only argument
-../build/bin/Release/echo-example.exe <your_rainway_api_key>
+./build/bin/Release/echo-example.exe <your_rainway_api_key>
 ```
 
 For more information about build configuration, see [The CMAKE Docs](https://cmake.org/cmake/help/v3.22/index.html).
