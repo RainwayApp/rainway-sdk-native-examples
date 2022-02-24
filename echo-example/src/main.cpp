@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         0,
         // The max host port to use (zero disables limiting the port)
         0,
-        // Optional callback for when connection to Instant Relay is lost
+        // Optional callback for when connection to the Gateway is lost
         std::nullopt,
         // Optional callback for when a connection request is received from a peer
         [](const rainway::ConnectionRequest req)
@@ -42,10 +42,11 @@ int main(int argc, char *argv[])
             // accept all connections
             req.accept();
         },
-        // Optional callback for when a new peer has connected
-        std::nullopt,
-        // Optional callback for when a peer has disconnected
-        std::nullopt,
+        // Optional callback for when a peer's connection state changes.
+        [](const rainway::Peer &peer, rainway::RainwayPeerState state)
+        {
+            std::cout << "Peer " << peer.peerId() << " moved to state " << state << std::endl;
+        },
         // Optional callback for when a peer message has been received
         [](const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
         {
