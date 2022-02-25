@@ -34,7 +34,7 @@ jobs:
       if: ${{ github.ref == 'refs/heads/main'  }}
 
     - name: Package Public
-      if: ${{ && github.ref == 'refs/heads/main' }}
+      if: ${{ github.ref == 'refs/heads/main' }}
       run: |
         mkdir rel
         zip rel/native-examples-rel-${{ env.GH_REL_TAG }}.zip -r build/bin/Release/* &&
