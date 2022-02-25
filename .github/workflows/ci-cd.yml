@@ -39,10 +39,11 @@ jobs:
 
     - name: Package Public
       if: ${{ github.ref == 'refs/heads/main' }}
+      shell: pwsh
       run: |
         mkdir rel
-        zip rel/native-examples-rel-${{ env.GH_REL_TAG }}.zip -r build/bin/Release/* &&
-        zip rel/native-examples-dbg-${{ env.GH_REL_TAG }}.zip -r build/bin/Debug/* &&
+        Compress-Archive -Path build/bin/Release -DestinationPath rel/native-examples-rel-${{ env.GH_REL_TAG }}.zip &&
+        Compress-Archive -Path build/bin/Debug -DestinationPath rel/native-examples-dbg-${{ env.GH_REL_TAG }}.zip &&
         echo "Packaged."
 
     # Remotely we create the release from the tag
