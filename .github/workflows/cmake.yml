@@ -1,0 +1,51 @@
+name: CI/CD
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  ci_cd:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build
+      run: cmake . -B build && cmake --build build --config Debug && cmake --build build --config Release
+
+    - name: Parse git commit
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: echo GH_REL_TAG=$(git rev-parse --short HEAD 2> /dev/null | sed "s/\(.*\)/v0-\1/") >> $GITHUB_ENV
+
+    # Remotely we create and push the tag
+    - name: Create Release Tag
+      run: git tag ${{ env.GH_REL_TAG }} && git push origin ${{ env.GH_REL_TAG }}
+      if: ${{ github.ref == 'refs/heads/main' }}
+
+    # Locally we debug the tag parse
+    - run: echo ${{ env.GH_REL_TAG }}
+      if: ${{ github.ref == 'refs/heads/main'  }}
+
+    - name: Package Public
+      if: ${{ && github.ref == 'refs/heads/main' }}
+      run: |
+        mkdir rel
+        zip rel/native-examples-rel-${{ env.GH_REL_TAG }}.zip -r build/bin/Release/* &&
+        zip rel/native-examples-dbg-${{ env.GH_REL_TAG }}.zip -r build/bin/Debug/* &&
+        echo "Packaged."
+
+    # Remotely we create the release from the tag
+    - name: GH Release
+      if: ${{ github.ref == 'refs/heads/main' }}
+      uses: softprops/action-gh-release@v0.1.14
+      with:
+        tag_name: ${{ env.GH_REL_TAG }}
+        generate_release_notes: true
+        files: rel/*.zip
