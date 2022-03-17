@@ -37,18 +37,18 @@ int main(int argc, char *argv[])
         // Optional callback for when connection to the Gateway is lost
         std::nullopt,
         // Optional callback for when a connection request is received from a peer
-        [](const rainway::ConnectionRequest req)
+        [](const rainway::Runtime &runtime, const rainway::ConnectionRequest req)
         {
             // accept all connections
             req.accept();
         },
         // Optional callback for when a peer's connection state changes.
-        [](const rainway::Peer &peer, rainway::RainwayPeerState state)
+        [](const rainway::Runtime &runtime, const rainway::Peer &peer, rainway::RainwayPeerState state)
         {
             std::cout << "Peer " << peer.peerId() << " moved to state " << state << std::endl;
         },
         // Optional callback for when a peer message has been received
-        [](const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
+        [](const rainway::Runtime &runtime, const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
         {
             // wrap the bit message in a vector
             std::vector<uint8_t> input(msg, msg + (msg_size * sizeof(const uint8_t)));
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         // Optional callback for when an error has been received from a peer
         std::nullopt,
         // Optional callback for when a stream request has been received
-        [](const rainway::StreamRequest req)
+        [](const rainway::Runtime &runtime, const rainway::StreamRequest req)
         {
             // accept all stream requests, granting full input permissions
             req.accept(rainway::RainwayStreamConfig{
