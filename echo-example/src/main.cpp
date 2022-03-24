@@ -24,6 +24,27 @@ int main(int argc, char *argv[])
     }
 
     auto apiKey = argv[1];
+    uint16_t minPort = 0;
+    uint16_t maxPort = 0;
+
+    if (argc >= 3)
+        minPort = (uint16_t)std::strtol(argv[2], nullptr, 10);
+
+    if (argc >= 4)
+        maxPort = (uint16_t)std::strtol(argv[3], nullptr, 10);
+
+    std::cout << "Using minPort: " << minPort << " and maxPort: " << maxPort << std::endl;
+
+    if (minPort > maxPort)
+    {
+        std::cout << "Error. minPort must be less than maxPort." << std::endl;
+        abort();
+    }
+
+    if (minPort == 0 && maxPort == 0)
+    {
+        std::cout << "Note: Since port limits are both zero, ports will not be limited." << std::endl;
+    }
 
     auto config = rainway::Config{
         // The Rainway API Key to authentication with
@@ -31,9 +52,9 @@ int main(int argc, char *argv[])
         // The Rainway External Id to identify ourselves as
         "rainway-sdk-native-echo-example",
         // The min host port to use (zero is default)
-        0,
+        minPort,
         // The max host port to use (zero disables limiting the port)
-        0,
+        maxPort,
         // Optional callback for when connection to the Gateway is lost
         std::nullopt,
         // Optional callback for when a connection request is received from a peer
