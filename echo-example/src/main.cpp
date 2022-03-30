@@ -4,11 +4,6 @@
 #include <optional>
 #include "rainwaysdk.h"
 
-// constant bitmask value for granting all input permissions
-const auto ALL_INPUT_LEVEL = rainway::RainwayInputLevel::Mouse |
-                             rainway::RainwayInputLevel::Keyboard |
-                             rainway::RainwayInputLevel::Gamepad;
-
 // Mirrors rainway::RainwayLogLevel indicies for conversion to string
 const char *LOG_LEVEL_STR_MAP[] = {"Silent", "Error", "Warning", "Info", "Debug", "Trace"};
 
@@ -68,8 +63,10 @@ int main(int argc, char *argv[])
         {
             // accept all stream requests, granting full input permissions
             req.accept(rainway::RainwayStreamConfig{
-                (rainway::RainwayInputLevel)ALL_INPUT_LEVEL,
-                nullptr,
+                rainway::RAINWAY_INPUT_LEVEL_ALL,
+                nullptr, // no input filter
+                nullptr, // no isolation pids
+                0, // 0 isolation pids
             });
         },
         // Optional callback for when a stream announcement has been received
@@ -81,7 +78,7 @@ int main(int argc, char *argv[])
 
     // setup the Rainway SDK static logging before we actually initialize the SDK
     // this ensures we are able to see all logs that are emitted on level Error, Warning, or Info
-    rainway::Runtime::setLogLevel(rainway::RainwayLogLevel::Info, nullptr);
+    rainway::Runtime::setLogLevel(rainway::RAINWAY_LOG_LEVEL_INFO, nullptr);
     rainway::Runtime::setLogSink([](rainway::RainwayLogLevel level, const char *target, const char *msg)
                                  { std::cout << LOG_LEVEL_STR_MAP[level] << " [" << target << "] " << msg << std::endl; });
 
