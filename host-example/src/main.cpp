@@ -7,7 +7,7 @@
 // Mirrors rainway::RainwayLogLevel indicies for conversion to string
 const char *LOG_LEVEL_STR_MAP[] = {"Silent", "Error", "Warning", "Info", "Debug", "Trace"};
 
-// echo-example entry point
+// host-example entry point
 // expects your API_KEY as the first and only argument
 int main(int argc, char *argv[])
 {
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         // The Rainway API Key to authentication with
         apiKey,
         // The Rainway External Id to identify ourselves as
-        "rainway-sdk-native-echo-example",
+        "rainway-sdk-native-host-example",
         // The min host port to use (zero is default)
         0,
         // The max host port to use (zero disables limiting the port)
