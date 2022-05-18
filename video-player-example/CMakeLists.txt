@@ -4,6 +4,7 @@ project("video-player-example")
 
 # Create an executable target from our source
 add_executable(${PROJECT_NAME} src/main.cpp)
+add_compile_definitions(NOMINMAX)
 
 # Specify the target uses the c++ linker
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)

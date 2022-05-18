@@ -62,11 +62,12 @@ int main(int argc, char *argv[])
         [](const rainway::Runtime &runtime, const rainway::StreamRequest req)
         {
             // accept all stream requests, granting full input permissions
-            req.accept(rainway::RainwayStreamConfig{
+            req.accept(rainway::StreamConfig{
+                rainway::RAINWAY_STREAM_TYPE_FULL_DESKTOP,
                 rainway::RAINWAY_INPUT_LEVEL_ALL,
                 nullptr, // no input filter
                 nullptr, // no isolation pids
-                0, // 0 isolation pids
+                0,       // 0 isolation pids
             });
         },
         // Optional callback for when a stream announcement has been received
