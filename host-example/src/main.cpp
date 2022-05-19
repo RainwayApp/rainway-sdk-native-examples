@@ -7,7 +7,7 @@
 // Mirrors rainway::RainwayLogLevel indicies for conversion to string
 const char *LOG_LEVEL_STR_MAP[] = {"Silent", "Error", "Warning", "Info", "Debug", "Trace"};
 
-// echo-example entry point
+// host-example entry point
 // expects your API_KEY as the first and only argument
 int main(int argc, char *argv[])
 {
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         // The Rainway API Key to authentication with
         apiKey,
         // The Rainway External Id to identify ourselves as
-        "rainway-sdk-native-echo-example",
+        "rainway-sdk-native-host-example",
         // The min host port to use (zero is default)
         0,
         // The max host port to use (zero disables limiting the port)
@@ -62,11 +62,12 @@ int main(int argc, char *argv[])
         [](const rainway::Runtime &runtime, const rainway::StreamRequest req)
         {
             // accept all stream requests, granting full input permissions
-            req.accept(rainway::RainwayStreamConfig{
+            req.accept(rainway::StreamConfig{
+                rainway::RAINWAY_STREAM_TYPE_FULL_DESKTOP,
                 rainway::RAINWAY_INPUT_LEVEL_ALL,
                 nullptr, // no input filter
                 nullptr, // no isolation pids
-                0, // 0 isolation pids
+                0,       // 0 isolation pids
             });
         },
         // Optional callback for when a stream announcement has been received
