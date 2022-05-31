@@ -5,11 +5,11 @@ project("rainway-sdk-native-examples")
 include(FetchContent)
 
 # The version of the Rainway SDK to use
-set(RAINWAY_SDK_VERSION "0.3.0-beta.1")
+set(RAINWAY_SDK_VERSION "0.3.0")
 
 # The md5 hash of the Rainway SDK zip for this version
 # From powershell you can use `Get-FileHash -Algorithm MD5 -Path <path>`
-set(RAINWAY_SDK_MD5_HASH "55172A800FC0F80C53BC0E9A2BB339E4")
+set(RAINWAY_SDK_MD5_HASH "6F80A5F0B5D019518193E84AA8EF53BE")
 
 message("Attempting to download Rainway SDK v${RAINWAY_SDK_VERSION} with md5 hash '${RAINWAY_SDK_MD5_HASH}'")
 
