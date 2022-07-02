@@ -20,74 +20,103 @@ int main(int argc, char *argv[])
 
     auto apiKey = argv[1];
 
-    auto config = rainway::Config{
-        // The Rainway API Key to authentication with
-        apiKey,
-        // The Rainway External Id to identify ourselves as
-        "rainway-sdk-native-host-example",
-        // The min host port to use (zero is default)
-        0,
-        // The max host port to use (zero disables limiting the port)
-        0,
-        // Optional callback for when connection to the Gateway is lost
-        std::nullopt,
-        // Optional callback for when a connection request is received from a peer
-        [](const rainway::Runtime &runtime, const rainway::ConnectionRequest req)
-        {
-            // accept all connections
-            req.accept();
-        },
-        // Optional callback for when a peer's connection state changes.
-        [](const rainway::Runtime &runtime, const rainway::Peer &peer, rainway::RainwayPeerState state)
-        {
-            std::cout << "Peer " << peer.peerId() << " moved to state " << state << std::endl;
-        },
-        // Optional callback for when a peer message has been received
-        [](const rainway::Runtime &runtime, const rainway::Peer &peer, std::string channel, const uint8_t *msg, size_t msg_size)
-        {
-            // wrap the bit message in a vector
-            std::vector<uint8_t> input(msg, msg + (msg_size * sizeof(const uint8_t)));
+    auto hr = rainway::Initialize();
+    if (hr != rainway::Error::RAINWAY_ERROR_SUCCESS) {
+        std::cout << "Error. Failed to initialize Rainway: " << hr << std::endl;
+        return 1;
+    }
 
-            // reverse the vector in place
-            std::reverse(input.begin(), input.end());
+    // install the global logging handlers
+    rainway::SetLogLevel(rainway::LogLevel::RAINWAY_LOG_LEVEL_INFO, nullptr);
+    rainway::SetLogSink([](rainway::LogLevel level, const char* target, const char* message) {
+         std::cout << LOG_LEVEL_STR_MAP[level] << " [" << target << "] " << message << std::endl;
+    });
 
-            // send the peer the reversed vector message
-            peer.send(channel, input);
-        },
-        // Optional callback for when a peer data channel is created
-        std::nullopt,
-        // Optional callback for when an error has been received from a peer
-        std::nullopt,
-        // Optional callback for when a stream request has been received
-        [](const rainway::Runtime &runtime, const rainway::StreamRequest req)
-        {
-            // accept all stream requests, granting full input permissions
-            req.accept(rainway::StreamConfig{
-                rainway::RAINWAY_STREAM_TYPE_FULL_DESKTOP,
-                rainway::RAINWAY_INPUT_LEVEL_ALL,
-                nullptr, // no input filter
-                nullptr, // no isolation pids
-                0,       // 0 isolation pids
+    // set up the connection config
+    rainway::Connection::CreateOptions config;
+    config.apiKey = apiKey;
+    config.externalId = "rainway-sdk-native-host-example";
+
+    // try to create a connection
+    rainway::Connection::Create(config, rainway::Connection::CreatedCallback{
+        // on success
+        [](rainway::Connection conn) {
+            // log information about the SDK
+            std::cout << "Connected to the Rainway Network as Peer " << conn.Id() << " using SDK version " << rainway::internal::rainway_version() << std::endl;
+
+            // set up the peer handler
+            conn.SetPeerConnectionRequestHandler(rainway::Connection::PeerConnectionRequestHandler{
+                [](rainway::IncomingConnectionRequest req) {
+                    // accept all requests, handling the created peer
+                    req.Accept(rainway::PeerOptions{}, rainway::IncomingConnectionRequest::AcceptCallback{
+                        // on success
+                        [](rainway::PeerConnection peer) {
+                            // set a state change handler for the peer to log
+                            peer.SetStateChangeHandler(rainway::PeerConnection::StateChangeHandler {
+                                [&](rainway::PeerConnection::State state) {
+                                    std::cout << "Peer " << peer.Id() << " moved to state " << state << std::endl;
+                                }
+                            });
+
+                            // accept all stream requests, handling the created stream 
+                            peer.SetOutboundStreamRequestHandler(rainway::PeerConnection::OutboundStreamRequestHandler {
+                                [](rainway::OutboundStreamRequest req) {
+                                    // for this demo, we always create a full desktop, all permission stream
+                                    // for your application, you probably want something better scoped than this
+                                    rainway::OutboundStreamStartOptions config;
+                                    config.type = rainway::StreamType::RAINWAY_STREAM_TYPE_FULL_DESKTOP;
+                                    config.defaultPermissions = rainway::InputLevel::RAINWAY_INPUT_LEVEL_ALL;
+
+                                    // accept the stream
+                                    req.Accept(config, rainway::OutboundStreamStartCallback {
+                                        [](rainway::OutboundStream stream) {
+                                            std::cout << "Stream " << stream.Id() << " created" << std::endl;
+                                        }
+                                    });
+                                }
+                            });
+
+                            // monitor data channel creation, installing an echo handler on each one
+                            peer.SetDataChannelOpenedHandler(rainway::PeerConnection::DataChannelOpenedHandler {
+                                [](rainway::DataChannel channel) {
+                                    std::cout << "Channel " << channel.name << " created" << std::endl;
+
+                                    // install the handler
+                                    channel.SetDataChannelDataHandler(rainway::DataChannel::DataChannelDataHandler {
+                                        [&](rainway::DataChannel::DataChannelDataEvent ev) {
+                                            std::cout << "Got message" << std::endl;
+                                            // wrap the bit message in a vector
+                                            std::vector<uint8_t> input(ev.data, ev.data + (ev.len * sizeof(const uint8_t)));
+
+                                            // reverse the vector in place
+                                            std::reverse(input.begin(), input.end());
+
+                                            // send the peer the reversed vector message
+                                            auto hr = channel.Send(input);
+                                            if (hr != rainway::Error::RAINWAY_ERROR_SUCCESS) {
+                                                std::cout << "Failed to send data to channel " << channel.name << " due to: " << hr << std::endl;
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        },
+                        // on failure
+                        [](rainway::Error err) {
+                             std::cout << "Error. Failed to accept connection: " << err << std::endl;
+                        }
+                    });
+                },
             });
         },
-        // Optional callback for when a stream announcement has been received
-        std::nullopt,
-        // Optional callback for when a stream has been stopped
-        std::nullopt};
+        // on failure
+        [](rainway::Error err) {
+            // log
+            std::cout << "Error. Failed to connect to Rainway: " << err << std::endl;
+        }
+    });
 
     std::cout << "Connecting to Rainway..." << std::endl;
-
-    // setup the Rainway SDK static logging before we actually initialize the SDK
-    // this ensures we are able to see all logs that are emitted on level Error, Warning, or Info
-    rainway::Runtime::setLogLevel(rainway::RAINWAY_LOG_LEVEL_INFO, nullptr);
-    rainway::Runtime::setLogSink([](rainway::RainwayLogLevel level, const char *target, const char *msg)
-                                 { std::cout << LOG_LEVEL_STR_MAP[level] << " [" << target << "] " << msg << std::endl; });
-
-    // initialize the runtime, waiting for the async work, and retrieve the result as 'runtime'
-    auto runtime = std::get<0>(rainway::Runtime::initialize(config).get());
-
-    // log information about the SDK
-    std::cout << "Connected to the Rainway Network as Peer " << runtime->peerId() << " using SDK version " << runtime->prettyVersion() << std::endl;
 
     std::cout << "Press any key to exit.";
 
@@ -96,10 +125,7 @@ int main(int argc, char *argv[])
 
     std::cout << "Input received. Shutting down Rainway..." << std::endl;
 
-    // explicitly drop the runtime ptr, cleaning up the rainway sdk internals
-    runtime.reset();
-
-    std::cout << "Shut down. Exiting..." << std::endl;
+    rainway::Shutdown();
 
     return 0;
 }
