@@ -5,7 +5,7 @@
 #include "rainwaysdk.h"
 
 // Mirrors rainway::RainwayLogLevel indicies for conversion to string
-const char *LOG_LEVEL_STR_MAP[] = {"Silent", "Error", "Warning", "Info", "Debug", "Trace"};
+const char *LOG_LEVEL_STR_MAP[] = {"Silent", "Error", "Warning", "Info", "Debug", "Trace"}; 
 
 // host-example entry point
 // expects your API_KEY as the first and only argument
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
                     req.Accept(rainway::PeerOptions{}, rainway::IncomingConnectionRequest::AcceptCallback{
                         // on success
                         [](rainway::PeerConnection peer) {
-                            // set a state change handler for the peer to log
+                            // set a state change handler for the peer to log when it changes state
                             peer.SetStateChangeHandler(rainway::PeerConnection::StateChangeHandler {
                                 [&](rainway::PeerConnection::State state) {
                                     std::cout << "Peer " << peer.Id() << " moved to state " << state << std::endl;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
     std::cout << "Connecting to Rainway..." << std::endl;
 
-    std::cout << "Press any key to exit.";
+    std::cout << "Press any key to exit." << std::endl;
 
     // wait for user input, if received, shutdown
     std::cin.get();
