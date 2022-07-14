@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
                                     // install the handler
                                     channel.SetDataChannelDataHandler(rainway::DataChannel::DataChannelDataHandler {
-                                        [&](rainway::DataChannel::DataChannelDataEvent ev) {
+                                        [=](rainway::DataChannel::DataChannelDataEvent ev) {
                                             std::cout << "Got message" << std::endl;
                                             // wrap the bit message in a vector
                                             std::vector<uint8_t> input(ev.data, ev.data + (ev.len * sizeof(const uint8_t)));
