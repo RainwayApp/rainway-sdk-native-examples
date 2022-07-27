@@ -7,14 +7,17 @@
 //
 // For more info, see: https://docs.rainway.com/docs/byofb
 
+// we don't want windows MIN/MAX macros, we'll use stl versions
+#define NOMINMAX 1
+
 #include <winrt/base.h>
 
+#include <algorithm>
 #include <cassert>
 #include <mfapi.h>
 #include <mferror.h>
 #include <mfplay.h>
 #include <mfreadwrite.h>
-#include <algorithm>
 #include <optional>
 #include <string>
 #include <unordered_set>
@@ -94,7 +97,7 @@ namespace dx
     /// @param h Height of texture
     /// @param format DXGI format of texture to create.
     winrt::com_ptr<ID3D11Texture2D> create_texture(
-        winrt::com_ptr<ID3D11Device> &device,
+        winrt::com_ptr<ID3D11Device>& device,
         uint32_t w,
         uint32_t h,
         DXGI_FORMAT format)
@@ -123,7 +126,7 @@ namespace mf
 {
     /// @brief Print debug information about the video format of the source reader
     /// @param source_reader Source reader
-    void debug_video_format(winrt::com_ptr<IMFSourceReader> &source_reader)
+    void debug_video_format(winrt::com_ptr<IMFSourceReader>& source_reader)
     {
         winrt::com_ptr<IMFMediaType> native_type = nullptr;
         winrt::com_ptr<IMFMediaType> first_output = nullptr;
@@ -153,8 +156,8 @@ namespace mf
     /// @param source_reader Source reader
     /// @param resampler Resampler
     void debug_audio_format(
-        winrt::com_ptr<IMFSourceReader> &source_reader,
-        winrt::com_ptr<IMFTransform> &resampler)
+        winrt::com_ptr<IMFSourceReader>& source_reader,
+        winrt::com_ptr<IMFTransform>& resampler)
     {
         winrt::com_ptr<IMFMediaType> native_type = nullptr;
         winrt::com_ptr<IMFMediaType> first_output = nullptr;
@@ -219,8 +222,8 @@ namespace mf
     }
 
     void debug_media_format(
-        winrt::com_ptr<IMFSourceReader> &source_reader,
-        winrt::com_ptr<IMFTransform> &resampler)
+        winrt::com_ptr<IMFSourceReader>& source_reader,
+        winrt::com_ptr<IMFTransform>& resampler)
     {
         debug_video_format(source_reader);
         debug_audio_format(source_reader, resampler);
@@ -238,7 +241,7 @@ namespace mf
     /// @param device Device to initialise media foundation source reader with
     /// @param utf8_filename filename to open
     /// @return result of opening the media file
-    OpenMediaResult open_media(winrt::com_ptr<ID3D11Device> &device, const char *utf8_filename)
+    OpenMediaResult open_media(winrt::com_ptr<ID3D11Device>& device, const char* utf8_filename)
     {
         // Make sure that MF is loaded
         WI_VERIFY_SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET));
@@ -278,7 +281,7 @@ namespace mf
         // Set up the source reader to use D3D and produce textures.
         // First we set a D3D Manager for the source reader, this allows it to create D3D textures instead of decoding
         // to CPU memory buffers
-        WI_VERIFY_SUCCEEDED(source_attributes->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, (IUnknown *)device_manager.get()));
+        WI_VERIFY_SUCCEEDED(source_attributes->SetUnknown(MF_SOURCE_READER_D3D_MANAGER, (IUnknown*)device_manager.get()));
         // We must enable shared without mutex here, it looks like the MF Mpeg2 decoder both does not respect keyed mutex
         // sharing AND runs on a separate thread.
         WI_VERIFY_SUCCEEDED(source_attributes->SetUINT32(MF_SA_D3D11_SHARED_WITHOUT_MUTEX, 1));
@@ -330,7 +333,7 @@ namespace mf
         // Create our resampler (takes audio in arbitrary formats and converts to AUDIO_SAMPLE_RATEhz PCM)
         winrt::com_ptr<IUnknown> resampler_unknown = nullptr;
         winrt::com_ptr<IMFTransform> resampler = nullptr;
-        WI_VERIFY_SUCCEEDED(CoCreateInstance(CLSID_CResamplerMediaObject, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown, (void **)resampler_unknown.put()));
+        WI_VERIFY_SUCCEEDED(CoCreateInstance(CLSID_CResamplerMediaObject, nullptr, CLSCTX_INPROC_SERVER, IID_IUnknown, (void**)resampler_unknown.put()));
         WI_VERIFY_SUCCEEDED(resampler_unknown->QueryInterface(IID_PPV_ARGS(resampler.put())));
         winrt::com_ptr<IWMResamplerProps> resampler_props = nullptr;
         WI_VERIFY_SUCCEEDED(resampler_unknown->QueryInterface(IID_PPV_ARGS(resampler_props.put())));
@@ -370,7 +373,7 @@ struct Media
     /// @brief Maybe get a video frame
     /// @param output texture to copy frame into
     /// @return whether a sample was copied
-    bool video_frame(winrt::com_ptr<ID3D11Texture2D> &output)
+    bool video_frame(winrt::com_ptr<ID3D11Texture2D>& output)
     {
         if (cur_time < video_timestamp)
             return false;
@@ -486,7 +489,7 @@ struct Media
 
     /// @brief Get an audio frame
     /// @param output buffer to copy frame into
-    void audio_frame(std::vector<uint8_t> &output)
+    void audio_frame(std::vector<uint8_t>& output)
     {
         if (cur_time < audio_timestamp)
             return;
@@ -530,7 +533,7 @@ struct Media
         WI_VERIFY_SUCCEEDED(sample->ConvertToContiguousBuffer(media_buffer.put()));
         sample->Release();
 
-        uint8_t *begin = nullptr;
+        uint8_t* begin = nullptr;
         DWORD len = 0;
         WI_VERIFY_SUCCEEDED(media_buffer->Lock(&begin, nullptr, &len));
         output.resize(len, 0);
@@ -545,9 +548,9 @@ struct Media
     /// @param produced_audio Whether a texture has been produced
     void frame(
         LONGLONG elapsed,
-        std::vector<uint8_t> &output_audio,
-        winrt::com_ptr<ID3D11Texture2D> &output_texture,
-        bool &produced_video)
+        std::vector<uint8_t>& output_audio,
+        winrt::com_ptr<ID3D11Texture2D>& output_texture,
+        bool& produced_video)
     {
         cur_time += elapsed;
         produced_video = video_frame(output_texture);
@@ -556,6 +559,7 @@ struct Media
 };
 
 #include <chrono>
+#include <mutex>
 
 #include <cstdio>
 
@@ -563,9 +567,9 @@ struct Media
 
 using namespace rainway;
 
-static void log_sink(RainwayLogLevel level, const char *target, const char *message)
+static void log_sink(LogLevel level, const char* target, const char* message)
 {
-    const char *LOG_LEVELS[] = {
+    const char* LOG_LEVELS[] = {
         "silent",
         "error",
         "warn",
@@ -576,7 +580,127 @@ static void log_sink(RainwayLogLevel level, const char *target, const char *mess
     printf("[RW] (%8s) %s: %s\n", LOG_LEVELS[level], target, message);
 }
 
-int main(int argc, const char *argv[])
+void on_stream_start(
+    rainway::OutboundStream stream,
+    std::string media_path)
+{
+    bool stopped = false;
+    stream.SetCloseHandler([&stopped]() { stopped = true; });
+
+    WI_VERIFY_SUCCEEDED(CoInitializeEx(nullptr, COINIT_DISABLE_OLE1DDE));
+
+    auto device = dx::create_device();
+    auto result = mf::open_media(device, media_path.c_str());
+    mf::debug_media_format(result.source_reader, result.resampler);
+
+    auto media = Media {
+        result.resampler,
+        result.source_reader,
+        result.device_manager,
+    };
+
+    auto prev = std::chrono::high_resolution_clock::now();
+
+    std::vector<uint8_t> audio = {};
+    winrt::com_ptr<ID3D11Texture2D> texture = dx::create_texture(device, 1920, 1080, DXGI_FORMAT_B8G8R8A8_UNORM);
+
+    LONGLONG deadline = 0;
+
+    while (!stopped)
+    {
+        // This deadline is when we need to get the next samples from the media
+        // Since the media is at 30 FPS, we often dont have anything new to submit. This
+        // deadline allows us to not spin the thread, and allow other threads to be scheduled
+        // whilst we are not doing anything. It also significantly reduces contention on
+        // the texture keyed mutexes.
+        if (deadline != 0)
+        {
+            using namespace std::chrono_literals;
+            auto wake_point = std::chrono::time_point<std::chrono::high_resolution_clock> {100ns * deadline};
+            std::this_thread::sleep_until(wake_point);
+        }
+
+        auto now = std::chrono::high_resolution_clock::now();
+        auto elapsed_nanos = (now - prev).count();
+        prev = now;
+
+        audio.resize(0);
+
+        bool produced_video = false;
+        media.frame(elapsed_nanos / 100, audio, texture, produced_video);
+
+        if (produced_video && texture)
+        {
+            stream.SubmitVideo(rainway::VideoBuffer {
+                rainway::internal::RAINWAY_OUTBOUND_STREAM_VIDEO_BUFFER_DIRECT_X,
+                rainway::internal::RainwayDirectX_Body {texture.get()}});
+        }
+
+        deadline = media.video_timestamp;
+
+        if (audio.size() > 0)
+        {
+            auto audio_buffer = rainway::AudioBuffer {rainway::internal::RAINWAY_AUDIO_BUFFER_PCM, (int16_t*)audio.data()};
+            // Convert from byte length to samples
+            // 2 bytes per sample, 1 sample per n channels
+            auto sample_count = audio.size() / 2 / 2;
+
+            auto submission = rainway::AudioOptions {
+                AUDIO_SAMPLE_RATE,
+                (uint16_t)2,
+                (uint32_t)sample_count,
+                audio_buffer};
+            stream.SubmitAudio(submission);
+        }
+
+        // Use the closest deadline
+        deadline = std::min(deadline, media.audio_timestamp);
+    }
+}
+
+void on_peer_connected(
+    rainway::Connection conn,
+    rainway::PeerConnection peer,
+    std::string media_path)
+{
+    peer.SetStateChangeHandler(
+        rainway::PeerConnection::StateChangeHandler {
+            [=](rainway::PeerConnection::State state) {
+                if (state == rainway::PeerConnection::State::RAINWAY_PEER_STATE_CONNECTED)
+                    printf("Peer connected: %s\n", peer.externalId.c_str());
+                else if (state == rainway::PeerConnection::State::RAINWAY_PEER_STATE_FAILED)
+                    printf("Peer failed: %s\n", peer.externalId.c_str());
+            }});
+
+    peer.SetOutboundStreamRequestHandler(rainway::PeerConnection::OutboundStreamRequestHandler {
+        [=](rainway::OutboundStreamRequest req) {
+            rainway::OutboundStreamStartOptions config;
+            config.defaultPermissions = rainway::InputLevel::RAINWAY_INPUT_LEVEL_ALL;
+            config.type = rainway::StreamType::RAINWAY_STREAM_TYPE_BYOFB;
+
+            printf("Accepting stream request: from %s\n", req.Peer().externalId.c_str());
+
+            req.Accept(
+                config,
+                rainway::OutboundStreamStartCallback {
+                    [=](rainway::OutboundStream stream) {
+                        // Spawn thread for this stream
+                        auto thread = std::thread {
+                            [media_path, stream]() {
+                                on_stream_start(stream, media_path);
+                            },
+                        };
+
+                        thread.detach();
+                    },
+                    // on failure
+                    [](rainway::Error err) {
+                        printf("Failed to accept stream: %d", err);
+                    }});
+        }});
+}
+
+int main(int argc, const char* argv[])
 {
     if (argc < 3)
     {
@@ -585,137 +709,50 @@ int main(int argc, const char *argv[])
     }
 
     const auto api_key = argv[1];
-    const auto media_path = argv[2];
+    const auto media_path = std::string(argv[2]);
 
-    auto alive_mutex = std::mutex {};
-    auto alive_streams = std::unordered_set<Stream> {};
+    auto hr = rainway::Initialize();
+    if (hr != rainway::Error::RAINWAY_ERROR_SUCCESS)
+    {
+        printf("Error. Failed to initialize Rainway: %d\n", hr);
+        return 1;
+    }
 
-    auto config = Config {};
+    // install the log handlers
+    rainway::SetLogLevel(rainway::LogLevel::RAINWAY_LOG_LEVEL_DEBUG, nullptr);
+    rainway::SetLogSink(log_sink);
+
+    rainway::Connection::CreateOptions config;
     config.apiKey = api_key;
     config.externalId = "video-player";
-    config.onConnectionRequest = [](const Runtime &runtime, ConnectionRequest request) {
-        printf("Accepting connection: %s from %s\n", request.id().c_str(), request.externalId().c_str());
-        request.accept();
-    };
-    config.onPeerStateChange = [](const Runtime &runtime, Peer peer, RainwayPeerState state) {
-        if (state == RAINWAY_PEER_STATE_CONNECTED)
-            printf("Peer connected: %s\n", peer.externalId().c_str());
-        else if (state == RAINWAY_PEER_STATE_FAILED)
-            printf("Peer failed: %s\n", peer.externalId().c_str());
-    };
-    config.onPeerDataChannel = [](const Runtime &runtime, Peer peer, const std::string &channel, RainwayChannelMode mode) {
-        printf("Remote peer created new channel: %s %s", peer.externalId().c_str(), channel.c_str());
-    };
-    config.onStreamRequest = [&](const Runtime &runtime, StreamRequest request) {
-        printf("Accepting stream request: from %s\n", request.peer().externalId().c_str());
-        request.accept(
-            rainway::StreamConfig {
-                RAINWAY_STREAM_TYPE_BYOFB,
-                (RainwayInputLevel)(RAINWAY_INPUT_LEVEL_ALL)});
-    };
-    config.onStreamStart = [&](const Runtime &runtime, Stream stream) {
-        auto streams_lock = std::scoped_lock {alive_mutex};
-        alive_streams.insert(stream);
 
-        // Spawn thread for this stream
-        auto thread = std::thread {
-            [&, stream = stream]() {
-                WI_VERIFY_SUCCEEDED(CoInitializeEx(nullptr, COINIT_DISABLE_OLE1DDE));
+    rainway::Connection::Create(
+        config,
+        rainway::Connection::CreatedCallback {
+            [=](rainway::Connection conn) {
+                printf("Connected to rainway network as %llu\n", conn.Id());
 
-                auto device = dx::create_device();
-                auto result = mf::open_media(device, media_path);
-                mf::debug_media_format(result.source_reader, result.resampler);
+                conn.SetPeerConnectionRequestHandler(rainway::Connection::PeerConnectionRequestHandler {
+                    [=](rainway::IncomingConnectionRequest req) {
+                        printf("Accepting connection: %lld from %s\n", req.id, req.externalId.c_str());
 
-                auto media = Media {
-                    result.resampler,
-                    result.source_reader,
-                    result.device_manager,
-                };
-
-                auto prev = std::chrono::high_resolution_clock::now();
-
-                std::vector<uint8_t> audio = {};
-                winrt::com_ptr<ID3D11Texture2D> texture = dx::create_texture(device, 1920, 1080, DXGI_FORMAT_B8G8R8A8_UNORM);
-
-                LONGLONG deadline = 0;
-
-                while (true)
-                {
-                    {
-                        auto streams_lock = std::scoped_lock {alive_mutex};
-                        if (auto it = alive_streams.find(stream); it == alive_streams.end())
-                        {
-                            printf("Stream went down\n");
-                            return;
-                        }
-                    }
-
-                    // This deadline is when we need to get the next samples from the media
-                    // Since the media is at 30 FPS, we often dont have anything new to submit. This
-                    // deadline allows us to not spin the thread, and allow other threads to be scheduled
-                    // whilst we are not doing anything. It also significantly reduces contention on
-                    // the texture keyed mutexes.
-                    if (deadline != 0)
-                    {
-                        using namespace std::chrono_literals;
-                        auto wake_point = std::chrono::time_point<std::chrono::high_resolution_clock> {100ns * deadline};
-                        std::this_thread::sleep_until(wake_point);
-                    }
-
-                    auto now = std::chrono::high_resolution_clock::now();
-                    auto elapsed_nanos = (now - prev).count();
-                    prev = now;
-
-                    audio.resize(0);
-
-                    bool produced_video = false;
-                    media.frame(elapsed_nanos / 100, audio, texture, produced_video);
-
-                    if (produced_video && texture)
-                    {
-                        stream.submitFrame(texture.get());
-                    }
-
-                    deadline = media.video_timestamp;
-
-                    if (audio.size() > 0)
-                    {
-                        auto audio_buffer = RainwayAudioBuffer {RAINWAY_AUDIO_BUFFER_PCM, (int16_t *)audio.data()};
-                        // Convert from byte length to samples
-                        // 2 bytes per sample, 1 sample per n channels
-                        auto sample_count = audio.size() / 2 / 2;
-
-                        auto submission = RainwayAudioSubmit {
-                            AUDIO_SAMPLE_RATE,
-                            (uint16_t)2,
-                            audio_buffer,
-                            sample_count,
-                        };
-                        stream.submitAudio(submission);
-                    }
-
-                    // Use the closest deadline
-                    deadline = std::min(deadline, media.audio_timestamp);
-                }
+                        req.Accept(
+                            rainway::PeerOptions {},
+                            rainway::IncomingConnectionRequest::AcceptCallback {
+                                // on success
+                                [=](rainway::PeerConnection peer) {
+                                    on_peer_connected(conn, peer, media_path);
+                                },
+                                // on failure
+                                [](rainway::Error err) {
+                                    printf("Failed to accept connection: %d", err);
+                                }});
+                    }});
             },
-        };
-
-        thread.detach();
-    };
-    config.onStreamEnd = [&](const Runtime &runtime, Stream stream) {
-        auto streams_lock = std::scoped_lock {alive_mutex};
-        alive_streams.erase(stream);
-    };
-
-    rainway_set_log_level(RAINWAY_LOG_LEVEL_DEBUG, nullptr);
-    rainway_set_log_sink(log_sink);
-
-    auto runtime_promise = Runtime::initialize(config);
-    runtime_promise.wait();
-
-    auto runtime = std::get<std::unique_ptr<Runtime>>(runtime_promise.get());
-
-    printf("Connected to Rainway Network\nYour peerId is %llu\n", runtime->peerId());
+            // on failure
+            [](rainway::Error err) {
+                printf("Failed to connect to rainway: %d", err);
+            }});
 
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(10000h);

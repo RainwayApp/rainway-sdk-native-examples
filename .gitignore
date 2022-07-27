@@ -4,3 +4,5 @@
 # VSCode settings folder
 # We don't support shared vscode settings at this time
 .vscode/
+# VS settings and workspace folder
+.vs/
